@@ -5,5 +5,3 @@ const Role = {
 };
 
 module.exports = { Role };
-
-let unused_var;

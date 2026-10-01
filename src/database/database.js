@@ -99,6 +99,38 @@ class DB {
     }
   }
 
+  async deleteUser(userId) {
+    const connection = await this.getConnection();
+    try {
+      await connection.beginTransaction();
+      try {
+        await this.query(connection, `DELETE FROM auth WHERE userId=?`, [userId]);
+        await this.query(connection, `DELETE FROM userRole WHERE userId=?`, [userId]);
+        await this.query(connection, `DELETE FROM user WHERE id=?`, [userId]);
+        await connection.commit();
+      } catch (err) {
+        await connection.rollback();
+        throw err;
+      }
+    } finally {
+      connection.end();
+    }
+  }
+
+  async getUsers() {
+    const connection = await this.getConnection();
+    try {
+      const users = await this.query(connection, `SELECT id, name, email FROM user`);
+      for (const user of users) {
+        const roles = await this.query(connection, `SELECT role, objectId FROM userRole WHERE userId=?`, [user.id]);
+        user.roles = roles.map((role) => ({ objectId: role.objectId || undefined, role: role.role }));
+      }
+      return users;
+    } finally {
+      connection.end();
+    }
+  }
+
   async loginUser(userId, token) {
     token = this.getTokenSignature(token);
     const connection = await this.getConnection();

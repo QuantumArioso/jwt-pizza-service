@@ -56,7 +56,13 @@ userRouter.delete(
   '/:userId',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
-    res.json({ message: 'not implemented' });
+    const userId = Number(req.params.userId);
+    if (req.user.id !== userId && !req.user.isRole(Role.Admin)) {
+      return res.status(403).json({ message: 'unauthorized' });
+    }
+
+    await DB.deleteUser(userId);
+    res.json({ message: 'user deleted' });
   })
 );
 
@@ -65,7 +71,7 @@ userRouter.get(
   '/',
   authRouter.authenticateToken,
   asyncHandler(async (req, res) => {
-    res.json({ message: 'not implemented', users: [], more: false });
+    res.json({ message: 'users retrieved', users: await DB.getUsers(), more: false });
   })
 );
 

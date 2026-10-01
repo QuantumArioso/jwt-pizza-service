@@ -68,3 +68,56 @@ test('updates a user', async () => {
 		})
 	);
 });
+
+test('deletes a user', async () => {
+	const registrationResponse = await request(app).post('/api/auth').send({
+		name: 'user delete test',
+		email: `${Math.random().toString(36).substring(2, 12)}@test.com`,
+		password: 'a',
+	});
+
+	const deleteResponse = await request(app)
+		.delete(`/api/user/${registrationResponse.body.user.id}`)
+		.set('Authorization', `Bearer ${registrationResponse.body.token}`);
+
+	expect(deleteResponse.status).toBe(200);
+	expect(deleteResponse.body).toEqual({ message: 'user deleted' });
+
+	const getResponse = await request(app)
+		.get('/api/user/me')
+		.set('Authorization', `Bearer ${registrationResponse.body.token}`);
+
+	expect(getResponse.status).toBe(401);
+});
+
+test('lists users', async () => {
+	const registrationResponse = await request(app).post('/api/auth').send({
+		name: 'user list test',
+		email: `${Math.random().toString(36).substring(2, 12)}@test.com`,
+		password: 'a',
+	});
+
+	const response = await request(app)
+		.get('/api/user')
+		.set('Authorization', `Bearer ${registrationResponse.body.token}`);
+
+	expect(response.status).toBe(200);
+	expect(response.body).toEqual(
+		expect.objectContaining({
+			message: 'users retrieved',
+			users: expect.arrayContaining([
+				expect.objectContaining({
+					id: registrationResponse.body.user.id,
+					name: 'user list test',
+					email: registrationResponse.body.user.email,
+					roles: [{ role: 'diner' }],
+				}),
+			]),
+			more: false,
+		})
+	);
+
+	for (const user of response.body.users) {
+		expect(user).not.toHaveProperty('password');
+	}
+});

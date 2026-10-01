@@ -92,16 +92,34 @@ test('creates an order', async () => {
 			},
 		],
 	};
-	const response = await request(app)
-		.post('/api/order')
-		.set('Authorization', `Bearer ${adminToken}`)
-		.send(order);
+	const originalFetch = global.fetch;
+	global.fetch = jest.fn().mockResolvedValue({
+		ok: true,
+		json: async () => ({ reportUrl: 'https://factory.test/report', jwt: 'factory-test-jwt' }),
+	});
 
-	expect(response.status).toBe(200);
-	expect(response.body).toEqual(
-		expect.objectContaining({
+	try {
+		const response = await request(app)
+			.post('/api/order')
+			.set('Authorization', `Bearer ${adminToken}`)
+			.send(order);
+
+		expect(response.status).toBe(200);
+		expect(response.body).toEqual({
 			order: expect.objectContaining({ ...order, id: expect.any(Number) }),
-			jwt: expect.any(String),
-		})
-	);
+			followLinkToEndChaos: 'https://factory.test/report',
+			jwt: 'factory-test-jwt',
+		});
+		expect(global.fetch).toHaveBeenCalledWith(
+			expect.stringContaining('/api/order'),
+			expect.objectContaining({
+				method: 'POST',
+				headers: expect.objectContaining({
+					'Content-Type': 'application/json',
+				}),
+			})
+		);
+	} finally {
+		global.fetch = originalFetch;
+	}
 });

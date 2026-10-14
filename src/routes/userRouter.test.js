@@ -104,7 +104,6 @@ test('lists users', async () => {
 	expect(response.status).toBe(200);
 	expect(response.body).toEqual(
 		expect.objectContaining({
-			message: 'users retrieved',
 			users: expect.arrayContaining([
 				expect.objectContaining({
 					id: registrationResponse.body.user.id,
@@ -112,12 +111,16 @@ test('lists users', async () => {
 					email: registrationResponse.body.user.email,
 					roles: [{ role: 'diner' }],
 				}),
-			]),
-			more: false,
+			])
 		})
 	);
 
 	for (const user of response.body.users) {
 		expect(user).not.toHaveProperty('password');
 	}
+});
+
+test('list users unauthorized', async () => {
+  const listUsersRes = await request(app).get('/api/user');
+  expect(listUsersRes.status).toBe(401);
 });

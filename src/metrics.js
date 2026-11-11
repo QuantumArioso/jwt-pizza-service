@@ -4,6 +4,7 @@ const os = require('os');
 const requests = Object.create(null);
 const activeUsers = new Set();
 const authenticationAttempts = { success: 0, failure: 0 };
+const pizzaMetrics = { sold: 0, failures: 0, revenue: 0, latency: 0, purchases: 0 };
 
 setInterval(() => {
   Object.entries(requests).forEach(([endpoint, count]) => {
@@ -23,6 +24,16 @@ setInterval(() => {
     authenticationAttempts[result] = 0;
   });
 
+  sendMetricToGrafana('pizzas_sold_per_minute', pizzaMetrics.sold, 'gauge', '1');
+  sendMetricToGrafana('pizza_creation_failures_per_minute', pizzaMetrics.failures, 'gauge', '1');
+  sendMetricToGrafana('pizza_revenue_per_minute', pizzaMetrics.revenue, 'gauge', '1');
+  sendMetricToGrafana(
+    'pizza_purchase_latency_ms',
+    pizzaMetrics.purchases ? pizzaMetrics.latency / pizzaMetrics.purchases : 0,
+    'gauge',
+    'ms'
+  );
+
   Object.keys(requests).forEach((endpoint) => {
     delete requests[endpoint];
   });
@@ -40,6 +51,18 @@ function requestTracker(req, res, next) {
 
 function recordAuthenticationAttempt(result) {
   authenticationAttempts[result] += 1;
+}
+
+function pizzaPurchase(success, latency, price) {
+  pizzaMetrics.latency += latency;
+  pizzaMetrics.purchases += 1;
+
+  if (success) {
+    pizzaMetrics.sold += 1;
+    pizzaMetrics.revenue += price;
+  } else {
+    pizzaMetrics.failures += 1;
+  }
 }
 
 
@@ -111,4 +134,4 @@ function sendMetricToGrafana(metricName, metricValue, type, unit, attributes = {
     });
 }
 
-module.exports = { recordAuthenticationAttempt, requestTracker };
+module.exports = { pizzaPurchase, recordAuthenticationAttempt, requestTracker };

@@ -2,6 +2,7 @@ const config = require('./config');
 
 const requests = Object.create(null);
 const activeUsers = new Set();
+const authenticationAttempts = { success: 0, failure: 0 };
 
 setInterval(() => {
   Object.entries(requests).forEach(([endpoint, count]) => {
@@ -13,6 +14,11 @@ setInterval(() => {
   });
 
   sendMetricToGrafana('active_users_per_minute', activeUsers.size, 'gauge', '1');
+
+  Object.entries(authenticationAttempts).forEach(([result, count]) => {
+    sendMetricToGrafana('authentication_attempts_per_minute', count, 'gauge', '1', { result });
+    authenticationAttempts[result] = 0;
+  });
 
   Object.keys(requests).forEach((endpoint) => {
     delete requests[endpoint];
@@ -27,6 +33,10 @@ function requestTracker(req, res, next) {
     activeUsers.add(req.user.id);
   }
   next();
+}
+
+function recordAuthenticationAttempt(result) {
+  authenticationAttempts[result] += 1;
 }
 
 
@@ -86,4 +96,4 @@ function sendMetricToGrafana(metricName, metricValue, type, unit, attributes = {
     });
 }
 
-  module.exports = { requestTracker };
+module.exports = { recordAuthenticationAttempt, requestTracker };

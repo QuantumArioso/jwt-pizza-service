@@ -69,7 +69,7 @@ function sendMetricToGrafana(metricName, metricValue, type, unit, attributes = {
                 [type]: {
                   dataPoints: [
                     {
-                      asInt: metricValue,
+                      [Number.isInteger(metricValue) ? 'asInt' : 'asDouble']: metricValue,
                       timeUnixNano: Date.now() * 1000000,
                       attributes: Object.entries({ source: config.metrics.source, ...attributes }).map(([key, value]) => ({
                         key,

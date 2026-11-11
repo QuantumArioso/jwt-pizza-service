@@ -1,4 +1,5 @@
 const config = require('./config');
+const os = require('os');
 
 const requests = Object.create(null);
 const activeUsers = new Set();
@@ -14,6 +15,8 @@ setInterval(() => {
   });
 
   sendMetricToGrafana('active_users_per_minute', activeUsers.size, 'gauge', '1');
+  sendMetricToGrafana('cpu_usage_percentage', getCpuUsagePercentage(), 'gauge', '%');
+  sendMetricToGrafana('memory_usage_percentage', getMemoryUsagePercentage(), 'gauge', '%');
 
   Object.entries(authenticationAttempts).forEach(([result, count]) => {
     sendMetricToGrafana('authentication_attempts_per_minute', count, 'gauge', '1', { result });
@@ -40,6 +43,18 @@ function recordAuthenticationAttempt(result) {
 }
 
 
+function getCpuUsagePercentage() {
+  const cpuUsage = os.loadavg()[0] / os.cpus().length;
+  return Number((cpuUsage * 100).toFixed(2));
+}
+
+function getMemoryUsagePercentage() {
+  const totalMemory = os.totalmem();
+  const freeMemory = os.freemem();
+  const usedMemory = totalMemory - freeMemory;
+  const memoryUsage = (usedMemory / totalMemory) * 100;
+  return Number(memoryUsage.toFixed(2));
+}
 
 function sendMetricToGrafana(metricName, metricValue, type, unit, attributes = {}) {
   const metric = {

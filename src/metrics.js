@@ -1,6 +1,7 @@
 const config = require('./config');
 
 const requests = Object.create(null);
+const activeUsers = new Set();
 
 setInterval(() => {
   Object.entries(requests).forEach(([endpoint, count]) => {
@@ -11,16 +12,24 @@ setInterval(() => {
     });
   });
 
+  sendMetricToGrafana('active_users_per_minute', activeUsers.size, 'gauge', '1');
+
   Object.keys(requests).forEach((endpoint) => {
     delete requests[endpoint];
   });
+  activeUsers.clear();
 }, 60 * 1000);
 
 function requestTracker(req, res, next) {
   const endpoint = `[${req.method}] ${req.path}`;
   requests[endpoint] = (requests[endpoint] || 0) + 1;
+  if (req.user?.id !== undefined) {
+    activeUsers.add(req.user.id);
+  }
   next();
 }
+
+
 
 function sendMetricToGrafana(metricName, metricValue, type, unit, attributes = {}) {
   const metric = {

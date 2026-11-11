@@ -23,7 +23,7 @@ setInterval(() => {
 function requestTracker(req, res, next) {
   const endpoint = `[${req.method}] ${req.path}`;
   requests[endpoint] = (requests[endpoint] || 0) + 1;
-  if (req.user?.id !== undefined) {
+  if (req.user) {
     activeUsers.add(req.user.id);
   }
   next();

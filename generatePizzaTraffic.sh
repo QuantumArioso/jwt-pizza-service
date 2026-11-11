@@ -87,6 +87,16 @@ while true; do
 done &
 pid5=$!
 
+# Simulate an admin logging in every one minute
+while true; do
+  token=$(login "a@jwt.com" "admin")
+  echo "Login admin..." $( [ -z "$token" ] && echo "false" || echo "true" )
+  sleep 50
+  result=$(execute_curl "-X DELETE $host/api/auth -H \"Authorization: Bearer $token\"")
+  echo "Logging out admin..." $result
+  sleep 10
+done &
+pid6=$!
 
 # Wait for the background processes to complete
 wait $pid1 $pid2 $pid3 $pid4 $pid5

@@ -2,6 +2,7 @@ const config = require('./config');
 const os = require('os');
 
 const requests = Object.create(null);
+const endpointLatencies = Object.create(null);
 const activeUsers = new Set();
 const authenticationAttempts = { success: 0, failure: 0 };
 const pizzaMetrics = { sold: 0, failures: 0, revenue: 0, latency: 0, purchases: 0 };
@@ -13,6 +14,17 @@ setInterval(() => {
       method,
       path: pathParts.join(' '),
     });
+  });
+
+  Object.entries(endpointLatencies).forEach(([endpoint, latency]) => {
+    const [method, ...pathParts] = endpoint.split(' ');
+    sendMetricToGrafana(
+      'service_endpoint_latency_ms',
+      latency.count ? latency.total / latency.count : 0,
+      'gauge',
+      'ms',
+      { method, path: pathParts.join(' ') }
+    );
   });
 
   sendMetricToGrafana('active_users_per_minute', activeUsers.size, 'gauge', '1');
@@ -28,7 +40,7 @@ setInterval(() => {
   sendMetricToGrafana('pizza_creation_failures_per_minute', pizzaMetrics.failures, 'gauge', '1');
   sendMetricToGrafana('pizza_revenue_per_minute', pizzaMetrics.revenue, 'gauge', '1');
   sendMetricToGrafana(
-    'pizza_purchase_latency_ms',
+    'pizza_creation_latency_ms',
     pizzaMetrics.purchases ? pizzaMetrics.latency / pizzaMetrics.purchases : 0,
     'gauge',
     'ms'
@@ -37,15 +49,26 @@ setInterval(() => {
   Object.keys(requests).forEach((endpoint) => {
     delete requests[endpoint];
   });
+  Object.keys(endpointLatencies).forEach((endpoint) => {
+    delete endpointLatencies[endpoint];
+  });
   activeUsers.clear();
 }, 60 * 1000);
 
 function requestTracker(req, res, next) {
   const endpoint = `[${req.method}] ${req.path}`;
+  const startedAt = process.hrtime.bigint();
   requests[endpoint] = (requests[endpoint] || 0) + 1;
   if (req.user) {
     activeUsers.add(req.user.id);
   }
+  res.once('finish', () => {
+    const latency = Number(process.hrtime.bigint() - startedAt) / 1000000;
+    const current = endpointLatencies[endpoint] || { total: 0, count: 0 };
+    current.total += latency;
+    current.count += 1;
+    endpointLatencies[endpoint] = current;
+  });
   next();
 }
 

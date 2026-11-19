@@ -61,6 +61,12 @@ jobs:
               apiKey: '${{ secrets.METRICS_API_KEY }}',
               accountId: '${{ secrets.METRICS_ACCOUNT_ID }}',
             },
+            logging:    {
+              source: 'jwt-pizza-service',
+              accountId: ${{ secrets.LOGGING_ACCOUNT_ID }},
+              endpointUrl: '${{ secrets.LOGGING_ENDPOINT_URL }}',
+              apiKey: '${{ secrets.LOGGING_API_KEY }}',
+            },
           };" > src/config.js
 
       - name: Tests
@@ -144,4 +150,4 @@ jobs:
         curl -s -X POST https://largeweasel1204.grafana.net/api/annotations \
         -H "Authorization: Bearer ${{ secrets.GRAFANA_ACCESS_TOKEN }}" \
         -H "Content-Type: application/json" \
-        -d '{"dashboardUID":"an2z5tj", "panelId":1, "tags":["backend","production"], "text":"Version '"$version"' deployed" }'
+        -d '{"dashboardUID":"an2z5tj", "panelId":1, "tags":["backend","production","jwt-pizza"], "text":"Version '"$version"' deployed" }'

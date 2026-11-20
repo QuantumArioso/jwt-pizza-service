@@ -12,6 +12,7 @@ function httpLogger(req, res, next) {
 }
 
 function sendLogToGrafana(entry) {
+  const credentials = `${config.logging.accountId}:${config.logging.apiKey}`;
   const body = JSON.stringify({
     streams: [
       {
@@ -25,10 +26,16 @@ function sendLogToGrafana(entry) {
     method: 'POST',
     body,
     headers: {
-      Authorization: `Bearer ${config.logging.accountId}:${config.logging.apiKey}`,
+      Authorization: `Basic ${Buffer.from(credentials).toString('base64')}`,
       'Content-Type': 'application/json',
     },
   })
+    .then(async (response) => {
+      if (!response.ok) {
+        const text = await response.text();
+        console.error(`Failed to push log: ${response.status} ${text}`);
+      }
+    })
     .catch((error) => {
       console.error('Error pushing log:', error);
     });

@@ -7,7 +7,7 @@ app.listen(port, () => {
 });
 
 app.use((err, req, res) => {
-  logger.log('unhandled_exception', {
+  logger.log('unhandled_exception', 'exception', {
     message: logger.sanitize(err.message),
     stack: err.stack,
     method: req.method,

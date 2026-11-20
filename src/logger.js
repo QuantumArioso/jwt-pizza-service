@@ -41,11 +41,12 @@ class Logger {
     };
   };
 
-  exceptionLogger = (req, res, next) => {
+  exceptionLogger = (err, req, res, next) => {
     let send = res.send;
     res.send = (resBody) => {
         const logData = {
-            error: req.error,
+            message: err.message,
+            stack: err.stack,
             method: req.method,
             path: req.path,
         };

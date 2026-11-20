@@ -45,8 +45,7 @@ class Logger {
     let send = res.send;
     res.send = (resBody) => {
         const logData = {
-            message: req.err.message,
-            stack: req.err.stack,
+            error: req.error,
             method: req.method,
             path: req.path,
         };

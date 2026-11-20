@@ -1,44 +1,60 @@
-const config = require('./config.js');
+const config = require('./config');
 
-function httpLogger(req, res, next) {
-  res.once('finish', () => {
-    sendLogToGrafana({
-      method: req.method,
-      path: req.path,
-      status: res.statusCode,
-    });
-  });
-  next();
-}
+class Logger {
+  httpLogger = (req, res, next) => {
+    let send = res.send;
+    res.send = (resBody) => {
+      const logData = {
+        authorized: !!req.headers.authorization,
+        path: req.originalUrl,
+        method: req.method,
+        statusCode: res.statusCode,
+        reqBody: JSON.stringify(req.body),
+        resBody: JSON.stringify(resBody),
+      };
+      const level = this.statusToLogLevel(res.statusCode);
+      this.log(level, 'http', logData);
+      res.send = send;
+      return res.send(resBody);
+    };
+    next();
+  };
 
-function sendLogToGrafana(entry) {
-  const credentials = `${config.logging.accountId}:${config.logging.apiKey}`;
-  const body = JSON.stringify({
-    streams: [
-      {
-        stream: { source: config.logging.source },
-        values: [[`${Date.now() * 1000000}`, JSON.stringify(entry)]],
+  log(level, type, logData) {
+    const labels = { component: config.logging.source, level: level, type: type };
+    const values = [this.nowString(), this.sanitize(logData)];
+    const logEvent = { streams: [{ stream: labels, values: [values] }] };
+
+    this.sendLogToGrafana(logEvent);
+  }
+
+  statusToLogLevel(statusCode) {
+    if (statusCode >= 500) return 'error';
+    if (statusCode >= 400) return 'warn';
+    return 'info';
+  }
+
+  nowString() {
+    return (Math.floor(Date.now()) * 1000000).toString();
+  }
+
+  sanitize(logData) {
+    logData = JSON.stringify(logData);
+    return logData.replace(/\\"password\\":\s*\\"[^"]*\\"/g, '\\"password\\": \\"*****\\"');
+  }
+
+  sendLogToGrafana(event) {
+    const body = JSON.stringify(event);
+    fetch(`${config.endpointUrl}`, {
+      method: 'post',
+      body: body,
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${config.logging.accountId}:${config.logging.apiKey}`,
       },
-    ],
-  });
-
-  fetch(config.logging.endpointUrl, {
-    method: 'POST',
-    body,
-    headers: {
-      Authorization: `Basic ${Buffer.from(credentials).toString('base64')}`,
-      'Content-Type': 'application/json',
-    },
-  })
-    .then(async (response) => {
-      if (!response.ok) {
-        const text = await response.text();
-        console.error(`Failed to push log: ${response.status} ${text}`);
-      }
-    })
-    .catch((error) => {
-      console.error('Error pushing log:', error);
+    }).then((res) => {
+      if (!res.ok) console.log('Failed to send log to Grafana');
     });
+  }
 }
-
-module.exports = { httpLogger, sendLogToGrafana };
+module.exports = new Logger();

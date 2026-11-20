@@ -6,7 +6,7 @@ app.listen(port, () => {
   console.log(`Server started on port ${port}`);
 });
 
-app.use((err, req, res, next) => {
+app.use((err, req, res) => {
   logger.log('unhandled_exception', {
     message: logger.sanitize(err.message),
     stack: err.stack,

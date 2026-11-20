@@ -26,7 +26,7 @@ class Logger {
     this.log(level, 'db', sql);
   };
 
-  factoryLogger = (req, res, next) => {
+  factoryLogger = (req, res) => {
     let send = res.send;
     res.send = (resBody) => {
       const logData = {
@@ -39,7 +39,6 @@ class Logger {
       res.send = send;
       return res.send(resBody);
     };
-    next();
   };
 
   log(level, type, logData) {

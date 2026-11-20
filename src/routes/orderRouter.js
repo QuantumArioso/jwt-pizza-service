@@ -6,8 +6,6 @@ const { asyncHandler, StatusCodeError } = require('../endpointHelper.js');
 const metrics = require('../metrics');
 const logger = require('../logger.js');
 
-const app = express();
-app.use(logger.factoryLogger);
 const orderRouter = express.Router();
 
 orderRouter.docs = [
@@ -97,8 +95,10 @@ orderRouter.post(
 
       if (r.ok) {
         res.send({ order, followLinkToEndChaos: j.reportUrl, jwt: j.jwt });
+        logger.factoryLogger(req, res);
       } else {
         res.status(500).send({ message: 'Failed to fulfill order at factory', followLinkToEndChaos: j.reportUrl });
+        logger.factoryLogger(req, res);
       }
     } catch (error) {
       metrics.pizzaPurchase(false, Date.now() - startedAt, price);

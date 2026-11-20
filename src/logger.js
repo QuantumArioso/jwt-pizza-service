@@ -21,19 +21,9 @@ class Logger {
     next();
   };
 
-  dbLogger = (req, res, next) => {
-    let send = res.send;
-    res.send = (resBody) => {
-      const logData = {
-        query: req.query,
-        user: req.user ?? null,
-      };
-      const level = this.statusToLogLevel(res.statusCode);
-      this.log(level, 'db', logData);
-      res.send = send;
-      return res.send(resBody);
-    };
-    next();
+  dbLogger = (sql) => {
+    const level = this.statusToLogLevel(200);
+    this.log(level, 'db', sql);
   };
 
   log(level, type, logData) {

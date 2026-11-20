@@ -26,6 +26,22 @@ class Logger {
     this.log(level, 'db', sql);
   };
 
+  factoryLogger = (req, res, next) => {
+    let send = res.send;
+    res.send = (resBody) => {
+      const logData = {
+        user: req.user ?? null,
+        reqBody: JSON.stringify(req.body),
+        resBody: JSON.stringify(resBody),
+      };
+      const level = this.statusToLogLevel(res.statusCode);
+      this.log(level, 'factory', logData);
+      res.send = send;
+      return res.send(resBody);
+    };
+    next();
+  };
+
   log(level, type, logData) {
     const labels = { component: config.logging.source, level: level, type: type };
     const values = [this.nowString(), this.sanitize(logData)];

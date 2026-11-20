@@ -41,20 +41,22 @@ class Logger {
     };
   };
 
-  exceptionLogger = (err, req, res, next) => {
-    this.log('unhandled_exception', 'exception', {
-        message: err.message,
-        stack: err.stack,
-        method: req.method,
-        path: req.path,
-    });
-
-    // Send a standard error response to the user
-    res.status(err.status || 500).json({
-        message: 'An unexpected error occurred.',
-    });
+  exceptionLogger = (req, res, next) => {
+    let send = res.send;
+    res.send = (resBody) => {
+        const logData = {
+            message: req.err.message,
+            stack: req.err.stack,
+            method: req.method,
+            path: req.path,
+        };
+        const level = this.statusToLogLevel(res.statusCode);
+        this.log(level, 'exception', logData);
+        res.send = send;
+        return res.send(resBody);
+    };
     next();
-  };
+};
 
   log(level, type, logData) {
     const labels = { component: config.logging.source, level: level, type: type };

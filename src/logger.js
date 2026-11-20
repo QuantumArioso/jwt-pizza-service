@@ -34,7 +34,7 @@ class Logger {
       return res.send(resBody);
     };
     next();
-  }
+  };
 
   log(level, type, logData) {
     const labels = { component: config.logging.source, level: level, type: type };

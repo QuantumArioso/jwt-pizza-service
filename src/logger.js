@@ -42,7 +42,7 @@ class Logger {
   };
 
   exceptionLogger = (err, req, res, next) => {
-    log('unhandled_exception', 'exception', {
+    this.log('unhandled_exception', 'exception', {
         message: err.message,
         stack: err.stack,
         method: req.method,

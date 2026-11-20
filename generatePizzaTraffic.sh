@@ -98,5 +98,19 @@ while true; do
 done &
 pid6=$!
 
+# Simulate unhandled exception
+while true; do
+  token=$(login "d@jwt.com" "diner")
+
+  result=$(execute_curl "-X POST \"$host/api/order\" \
+    -H 'Content-Type: application/json' \
+    -H \"Authorization: Bearer $token\" \
+    -d '{\"franchiseId\":1,\"storeId\":1}'")
+
+  echo "Generated unhandled exception..." $result
+  sleep 10
+done &
+pid7=$!
+
 # Wait for the background processes to complete
-wait $pid1 $pid2 $pid3 $pid4 $pid5 $pid6
+wait $pid1 $pid2 $pid3 $pid4 $pid5 $pid6 $pid7

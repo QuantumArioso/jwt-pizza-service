@@ -9,6 +9,7 @@ class Logger {
         path: req.originalUrl,
         method: req.method,
         statusCode: res.statusCode,
+        user: req.user ?? null,
         reqBody: JSON.stringify(req.body),
         resBody: JSON.stringify(resBody),
       };
@@ -19,6 +20,21 @@ class Logger {
     };
     next();
   };
+
+  dbLogger = (req, res, next) => {
+    let send = res.send;
+    res.send = (resBody) => {
+      const logData = {
+        query: req.query,
+        user: req.user ?? null,
+      };
+      const level = this.statusToLogLevel(res.statusCode);
+      this.log(level, 'db', logData);
+      res.send = send;
+      return res.send(resBody);
+    };
+    next();
+  }
 
   log(level, type, logData) {
     const labels = { component: config.logging.source, level: level, type: type };
